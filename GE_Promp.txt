@@ -1,0 +1,47 @@
+You are an expert Looker LookML developer. I need you to create a complete, production-ready LookML project including two views, a model file, and a LookML dashboard. 
+
+The dashboard needs to reflect a complex, real-world business use case: **Executive Strategy: Margin Erosion & Supply Costs**. The persona is an Executive Strategy Manager & Fleet Operations Director evaluating macro corporate margin erosion (SEC filings) against raw fleet supply unit economics (NYC Taxi data).
+
+### 1. Data Sources & Schema Requirements
+You will use two specific public BigQuery datasets. You must adhere EXACTLY to these schema instructions and LookML structures:
+
+**Dataset A: NYC Taxi Trips**
+* **Table:** `bigquery-public-data.new_york_taxi_trips.tlc_yellow_trips_2018` (Must use 2018 to guarantee date overlap).
+* **Fields to define:** 
+  * `composite_key` (Primary Key, hidden): A string concatenating `vendor_id`, `pickup_datetime`, and `dropoff_datetime`.
+  * `pickup` (timeframe dimension group from `pickup_datetime`)
+  * `vendor_id`, `payment_type`, `rate_code` (cast all as STRING).
+  * `passenger_count` (number).
+  * Hide technical fields: `trip_distance`, `fare_amount`, `total_amount`.
+* **Measures to define:** `total_fleet_revenue` (sum of `total_amount`), `average_fare` (average of `fare_amount`), `total_trip_distance` (sum of `trip_distance`), `total_passengers` (sum of `passenger_count`).
+
+**Dataset B: SEC Financials**
+* **Table:** MUST use the pre-joined summary table: `bigquery-public-data.sec_quarterly_financials.quick_summary`. 
+* **Derived Table SQL Requirements:**
+  * Select `submission_number`, `company_name`, `form` (as `document_type`), and `value` (as `operating_expenses` cast as FLOAT64).
+  * The `period_end_date` is stored as a string/integer like `YYYYMMDD`. You MUST explicitly cast it using `PARSE_TIMESTAMP('%Y%m%d', CAST(period_end_date AS STRING))`.
+  * Filter the WHERE clause using: `measure_tag IN ('OperatingExpenses', 'CostOfRevenue', 'CostsAndExpenses') AND (number_of_quarters = 0 OR number_of_quarters IS NULL)`.
+* **Dimensions:** `submission_number` (PK, hidden), `company_name`, `period_end` (time group), `document_type`, `operating_expenses` (hidden).
+* **Measures:** `total_operating_expenses` (sum), `average_operating_expenses` (average).
+
+### 2. Model Requirements (`executive_margin_erosion.model.lkml`)
+* Connection: `"bigquery_public_data"`
+* Must include all views and dashboards: `include: "/**/*.view.lkml"` and `include: "/**/*.dashboard.lookml"`
+* Define two explores: `nyc_taxi_trips` and `sec_financials`, complete with user-friendly labels and descriptions. Do not map them with a SQL join.
+
+### 3. Dashboard Requirements (`executive_margin_erosion.dashboard.lookml`)
+Generate exactly 30 tiles and 10 filters. 
+* **Filters:** Include Order Date Range, Financial Period, Vendor ID (Fleet), SEC Company Name, Payment Type, Rate Code, SEC Document Type, Passenger Count, Min Fare Amount, and Time Granularity.
+* **CRITICAL FILTER SYNTAX:** 
+  * The `default_value` for both `Order Date Range` and `Financial Period` MUST be hardcoded to `"2016/01/01 to 2020/12/31"` to ensure data overlap.
+  * For the `Passenger Count` and `Min Fare Amount` filters (which should be `type: number_filter`), you MUST NOT include `model:` or `field:` parameters. Doing so will cause a validation error.
+* **Visualizations:** Use at least 8 different types (single_value, table, looker_column, looker_bar, looker_line, looker_area, looker_pie, looker_scatter, looker_grid). Do not use `looker_donut_multiples` without a pivot.
+* **Complex Features:** Include at least 3 tiles using Pivots, and at least 4 tiles using Custom Fields / Table Calculations (e.g., YoY Growth, Revenue per Mile, Variance from mean).
+* **Merged Queries:** Create at least 2 `merged_queries` tiles combining Taxi Fleet Revenue/Distance and SEC OpEx. 
+  * *CRITICAL MERGED QUERY SYNTAX:* 
+    1. Inside `merged_queries`, sub-queries MUST explicitly declare the `model: executive_margin_erosion` parameter.
+    2. Sub-queries must use `fields: [...]` instead of `dimensions:` and `measures:`. 
+    3. You MUST nest the `listen:` block INSIDE each subquery (not at the root element level), and it MUST be formatted as a YAML array with hyphens (e.g., `- "Filter Name": explore_name.field_name`).
+* **Standard Tile Listen Syntax:** All non-merged tiles must use the standard hash syntax for listening to filters (e.g., `"Order Date Range": nyc_taxi_trips.pickup_date`). Quote the filter names.
+
+Please output the full LookML code in separate code blocks for the two Views, the Model, and the complete 30-tile Dashboard.
