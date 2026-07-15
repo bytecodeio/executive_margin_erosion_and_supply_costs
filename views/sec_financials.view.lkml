@@ -1,10 +1,12 @@
+include: "/views/_period_comparison.view.lkml"
+
 view: sec_financials {
+  extends: [_period_comparison]
   derived_table: {
     sql:
       SELECT
         submission_number AS submission_number,
         company_name AS company_name,
-        -- Parses YYYYMMDD string/integer safely into a true TIMESTAMP
         PARSE_TIMESTAMP('%Y%m%d', CAST(period_end_date AS STRING)) AS period_end_date,
         form AS document_type,
         CAST(value AS FLOAT64) AS operating_expenses
@@ -14,7 +16,20 @@ view: sec_financials {
     ;;
   }
 
-  # --- Primary Key ---
+  # --- Abstract Event Mapping for Period Comparison ---
+  dimension: event_raw {
+    type: string
+    hidden: yes
+    sql: TIMESTAMP_ADD(${TABLE}.period_end_date, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+  }
+
+  dimension: event_date {
+    type: string
+    hidden: yes
+    sql: CAST(TIMESTAMP_ADD(${TABLE}.period_end_date, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) AS DATE) ;;
+  }
+
+  # --- Core Dimensions ---
   dimension: submission_number {
     primary_key: yes
     hidden: yes
@@ -22,18 +37,16 @@ view: sec_financials {
     sql: ${TABLE}.submission_number ;;
   }
 
-  # --- Dimensions ---
   dimension: company_name {
     type: string
     sql: ${TABLE}.company_name ;;
-    label: "Filing Company (Corp)"
-    description: "The official SEC registered name of the company."
+    label: "Filing Company Name"
+    description: "The SEC-registered name of the reporting enterprise."
   }
 
   dimension_group: period_end {
     type: time
     timeframes: [raw, date, month, quarter, year]
-    # Dynamically shifts the SEC period end dates forward using the same manifest anchor
     sql: TIMESTAMP_ADD(${TABLE}.period_end_date, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
     label: "Financial Period End"
     description: "The dynamically shifted end date for the reported financial quarter/year."
@@ -57,15 +70,15 @@ view: sec_financials {
     type: sum
     sql: ${operating_expenses} ;;
     value_format_name: usd_0
-    label: "Reported Operating Expenses"
-    description: "Total operating expenses reported by the corp in their SEC filing."
+    label: "Reported Corporate OpEx"
+    description: "Total operating expenses reported by the enterprise in their SEC filing."
   }
 
   measure: average_operating_expenses {
     type: average
     sql: ${operating_expenses} ;;
     value_format_name: usd_0
-    label: "Average Operating Expenses"
-    description: "Average operating expenses for selected filings."
+    label: "Average Corporate OpEx"
+    description: "Average operating expenses across selected filings."
   }
 }

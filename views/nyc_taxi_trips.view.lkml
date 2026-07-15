@@ -1,4 +1,7 @@
+include: "/views/_period_comparison.view.lkml"
+
 view: nyc_taxi_trips {
+  extends: [_period_comparison]
   derived_table: {
     sql:
       SELECT
@@ -23,6 +26,19 @@ view: nyc_taxi_trips {
     ;;
   }
 
+  # --- Abstract Event Mapping for Period Comparison ---
+  dimension: event_raw {
+    type: string
+    hidden: yes
+    sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+  }
+
+  dimension: event_date {
+    type: string
+    hidden: yes
+    sql: CAST(TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) AS DATE) ;;
+  }
+
   # --- Dimensions ---
   dimension: composite_key {
     primary_key: yes
@@ -34,7 +50,6 @@ view: nyc_taxi_trips {
   dimension_group: pickup {
     type: time
     timeframes: [raw, date, week, month, quarter, year]
-    # Dynamically shifts timestamps forward based on the global manifest anchor
     sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
     label: "Trip Pickup"
     description: "The dynamically shifted date and time the taxi trip started."

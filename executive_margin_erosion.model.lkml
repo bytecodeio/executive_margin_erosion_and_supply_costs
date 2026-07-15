@@ -1,8 +1,8 @@
 connection: "bigquery_public_data"
 
-# Include all views and dashboards
+# Include all views and specifically target only this model's dashboard
 include: "/views/*.view.lkml"
-include: "/dashboards/*.dashboard.lookml"
+include: "/dashboards/executive_margin_erosion.dashboard.lookml"
 
 explore: nyc_taxi_trips {
   label: "1. Fleet Operational Costs (NYC Taxi)"
