@@ -1,8 +1,7 @@
 project_name: "executive_margin_erosion_and_supply_costs"
 
-# # Use local_dependency: To enable referencing of another project
-# # on this instance with include: statements
-#
-# local_dependency: {
-#   project: "name_of_other_project"
-# }
+# The last date of historical data in our BigQuery tables
+constant: historical_end_date {
+  value: "2021-12-31"
+  export: none
+}

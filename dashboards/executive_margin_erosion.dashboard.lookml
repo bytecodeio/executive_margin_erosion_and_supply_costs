@@ -8,15 +8,17 @@
   # 10 COMPLEX FILTERS
   # ==========================================
   filters:
+
   - name: Order Date Range
     title: Order Date Range
     type: date_filter
-    default_value: "2016/01/01 to 2020/12/31"
+    default_value: "14 years"
 
   - name: Financial Period
     title: Financial Period
     type: date_filter
-    default_value: "2016/01/01 to 2020/12/31"
+    default_value: "14 years"
+
 
   - name: Vendor ID (Fleet)
     title: Vendor ID (Fleet)

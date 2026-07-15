@@ -9,7 +9,6 @@ view: sec_financials {
         form AS document_type,
         CAST(value AS FLOAT64) AS operating_expenses
       FROM `bigquery-public-data.sec_quarterly_financials.quick_summary`
-      -- Focused on operating expenses and cost of revenue for margin erosion analysis
       WHERE measure_tag IN ('OperatingExpenses', 'CostOfRevenue', 'CostsAndExpenses')
         AND (number_of_quarters = 0 OR number_of_quarters IS NULL)
     ;;
@@ -29,15 +28,15 @@ view: sec_financials {
     sql: ${TABLE}.company_name ;;
     label: "Filing Company (Corp)"
     description: "The official SEC registered name of the company."
-    tags: ["Corporation", "Enterprise"]
   }
 
   dimension_group: period_end {
     type: time
     timeframes: [raw, date, month, quarter, year]
-    sql: ${TABLE}.period_end_date ;;
+    # Dynamically shifts the SEC period end dates forward using the same manifest anchor
+    sql: TIMESTAMP_ADD(${TABLE}.period_end_date, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
     label: "Financial Period End"
-    description: "The end date for the reported financial quarter/year."
+    description: "The dynamically shifted end date for the reported financial quarter/year."
   }
 
   dimension: document_type {
