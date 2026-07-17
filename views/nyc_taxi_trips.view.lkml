@@ -2,29 +2,7 @@ include: "/views/_period_comparison.view.lkml"
 
 view: nyc_taxi_trips {
   extends: [_period_comparison]
-  derived_table: {
-    sql:
-      SELECT
-        CAST(vendor_id AS STRING) AS vendor_id,
-        pickup_datetime,
-        dropoff_datetime,
-        passenger_count,
-        trip_distance,
-        CAST(rate_code AS STRING) AS rate_code,
-        CAST(payment_type AS STRING) AS payment_type,
-        fare_amount,
-        total_amount
-      FROM `bigquery-public-data.new_york_taxi_trips.tlc_yellow_trips_*`
-      WHERE _TABLE_SUFFIX BETWEEN '2008' AND '2021'
-        AND fare_amount > 0
-        AND fare_amount <= 500
-        AND trip_distance > 0
-        AND trip_distance <= 100
-        AND passenger_count > 0
-        AND TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, MINUTE) > 0
-        AND TIMESTAMP_DIFF(dropoff_datetime, pickup_datetime, HOUR) < 24
-    ;;
-  }
+  sql_table_name:  `bigquery-public-data.new_york_taxi_trips.tlc_yellow_trips_*` ;;
 
   # --- Abstract Event Mapping for Period Comparison ---
   dimension: event_raw {
@@ -39,12 +17,27 @@ view: nyc_taxi_trips {
     sql: CAST(TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) AS DATE) ;;
   }
 
+  dimension: _TABLE_SUFFIX {
+    type: string
+    hidden: yes
+    sql: ${TABLE}._TABLE_SUFFIX ;;
+  }
+
   # --- Dimensions ---
   dimension: composite_key {
     primary_key: yes
     hidden: yes
     type: string
     sql: CONCAT(CAST(${TABLE}.vendor_id AS STRING), "_", CAST(${TABLE}.pickup_datetime AS STRING), "_", CAST(${TABLE}.dropoff_datetime AS STRING)) ;;
+  }
+
+  dimension_group: dropoff {
+    hidden: yes
+    type: time
+    timeframes: [raw, date, week, month, quarter, year]
+    sql: TIMESTAMP_ADD(${TABLE}.dropoff_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+    label: "Trip Dropof"
+    description: "The dynamically shifted date and time the taxi trip ended."
   }
 
   dimension_group: pickup {
