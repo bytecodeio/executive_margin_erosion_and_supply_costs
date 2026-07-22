@@ -1,9 +1,13 @@
 view: census_bureau_acs {
-  derived_table: {
+  sql_table_name: `bigquery-public-data.census_bureau_acs.state_2020_5yr` ;;
+
+  # --- Primary Key ---
+  dimension: state_name {
+    primary_key: yes
+    type: string
+    #sql: ${TABLE}.state_name ;;
     sql:
-      SELECT
-        -- Mapping geo_id (FIPS codes) explicitly to standardized State Names to avoid unrecognized name errors
-        CASE geo_id
+      CASE ${TABLE}.geo_id
           WHEN '01' THEN 'Alabama'
           WHEN '02' THEN 'Alaska'
           WHEN '04' THEN 'Arizona'
@@ -57,24 +61,8 @@ view: census_bureau_acs {
           WHEN '56' THEN 'Wyoming'
           WHEN '72' THEN 'Puerto Rico'
           ELSE CONCAT('FIPS Code: ', geo_id)
-        END AS state_name,
-        total_pop,
-        median_income,
-        income_per_capita,
-        median_age,
-        gini_index,
-        median_rent,
-        owner_occupied_housing_units_median_value AS median_home_value,
-        households
-      FROM `bigquery-public-data.census_bureau_acs.state_2020_5yr`
-    ;;
-  }
-
-  # --- Primary Key ---
-  dimension: state_name {
-    primary_key: yes
-    type: string
-    sql: ${TABLE}.state_name ;;
+        END
+      ;;
     label: "US State Name"
     description: "The official name of the US State."
     synonyms: ["State", "Region", "Geography"]
@@ -129,13 +117,19 @@ view: census_bureau_acs {
   dimension: median_home_value {
     type: number
     hidden: yes
-    sql: ${TABLE}.median_home_value ;;
+    sql: ${TABLE}.owner_occupied_housing_units_median_value ;;
+  }
+
+  dimension: median_income {
+    type: number
+    hidden: yes
+    sql: ${TABLE}.median_income ;;
   }
 
   # --- Measures ---
   measure: average_median_income {
     type: average
-    sql: ${TABLE}.median_income ;;
+    sql: ${median_income} ;;
     value_format_name: usd_0
     label: "Average Median Income"
     description: "The average of state-level median household incomes."

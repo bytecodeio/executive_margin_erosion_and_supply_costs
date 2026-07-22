@@ -6,16 +6,26 @@ view: sec_financials {
 
 
   # --- Abstract Event Mapping for Period Comparison ---
-  dimension: event_raw {
-    type: string
-    hidden: yes
-    sql: TIMESTAMP_ADD(PARSE_TIMESTAMP('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
-  }
-
-  dimension: event_date {
-    type: string
-    hidden: yes
-    sql: CAST(TIMESTAMP_ADD(PARSE_TIMESTAMP('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) AS DATE) ;;
+  dimension_group: event {
+    type: time
+    datatype: timestamp
+    timeframes: [
+      raw,
+      date,
+      hour_of_day,
+      day_of_week,
+      day_of_week_index,
+      day_of_month,
+      day_of_year,
+      week,
+      week_of_year,
+      month,
+      month_name,
+      month_num,
+      quarter,
+      quarter_of_year,
+      year]
+    sql: TIMESTAMP( DATE_ADD(  PARSE_DATE('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL (EXTRACT(YEAR FROM CURRENT_DATE()) - 2020) YEAR)) ;;
   }
 
   # --- Core Dimensions ---
@@ -46,10 +56,20 @@ view: sec_financials {
   }
 
   dimension_group: period_end {
+    ### only a record for the last day of every month. shifting by years to ensure the data stays recent.
     type: time
     timeframes: [raw, date, month, quarter, year]
-    sql: TIMESTAMP_ADD(PARSE_TIMESTAMP('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+    sql: TIMESTAMP( DATE_ADD(  PARSE_DATE('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL (EXTRACT(YEAR FROM CURRENT_DATE()) - 2020) YEAR)) ;;
     label: "Financial Period End"
+    description: "The dynamically shifted end date for the reported financial quarter/year."
+  }
+
+  dimension_group: period_end_original {
+    hidden: yes
+    type: time
+    timeframes: [raw, date, month, quarter, year]
+    sql: PARSE_TIMESTAMP('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING))  ;;
+    label: "Financial Period End Original"
     description: "The dynamically shifted end date for the reported financial quarter/year."
   }
 

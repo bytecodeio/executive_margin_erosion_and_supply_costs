@@ -11,7 +11,7 @@
   - name: Global Date Filter
     title: Global Date Filter
     type: date_filter
-    default_value: "last 3 years"
+    default_value: "last 3 months"
 
   - name: Comparison Target Period
     title: Comparison Target Period

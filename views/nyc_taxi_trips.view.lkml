@@ -1,25 +1,37 @@
 include: "/views/_period_comparison.view.lkml"
 
+#explore: nyc_taxi_trips {}
+
 view: nyc_taxi_trips {
   extends: [_period_comparison]
   sql_table_name:  `bigquery-public-data.new_york_taxi_trips.tlc_yellow_trips_*` ;;
 
   # --- Abstract Event Mapping for Period Comparison ---
-  dimension: event_raw {
-    type: string
-    hidden: yes
-    sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
-  }
-
-  dimension: event_date {
-    type: string
-    hidden: yes
-    sql: CAST(TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) AS DATE) ;;
+  dimension_group: event {
+    type: time
+    datatype: timestamp
+    timeframes: [
+      raw,
+      date,
+      hour_of_day,
+      day_of_week,
+      day_of_week_index,
+      day_of_month,
+      day_of_year,
+      week,
+      week_of_year,
+      month,
+      month_name,
+      month_num,
+      quarter,
+      quarter_of_year,
+      year]
+    sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date_nyc}'), DAY) DAY) ;;
   }
 
   dimension: _TABLE_SUFFIX {
     type: string
-    hidden: yes
+    #hidden: yes
     sql: ${TABLE}._TABLE_SUFFIX ;;
   }
 
@@ -35,15 +47,24 @@ view: nyc_taxi_trips {
     hidden: yes
     type: time
     timeframes: [raw, date, week, month, quarter, year]
-    sql: TIMESTAMP_ADD(${TABLE}.dropoff_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+    sql: TIMESTAMP_ADD(${TABLE}.dropoff_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date_nyc}'), DAY) DAY) ;;
     label: "Trip Dropof"
     description: "The dynamically shifted date and time the taxi trip ended."
+  }
+
+  dimension_group: pickup_original {
+    hidden: yes
+    type: time
+    timeframes: [raw, date, week, month, quarter, year]
+    sql: ${TABLE}.pickup_datetime ;;
+    label: "Trip Pickup Original"
+    description: "The dynamically shifted date and time the taxi trip started."
   }
 
   dimension_group: pickup {
     type: time
     timeframes: [raw, date, week, month, quarter, year]
-    sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date}'), DAY) DAY) ;;
+    sql: TIMESTAMP_ADD(${TABLE}.pickup_datetime, INTERVAL DATE_DIFF(CURRENT_DATE(), DATE('@{historical_end_date_nyc}'), DAY) DAY) ;;
     label: "Trip Pickup"
     description: "The dynamically shifted date and time the taxi trip started."
   }
