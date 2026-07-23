@@ -7,6 +7,6 @@ constant: historical_end_date_sec {
 }
 
 constant: historical_end_date_nyc {
-  value: "2022-11-30"
+  value: "2022-12-01"
   export: none
 }
