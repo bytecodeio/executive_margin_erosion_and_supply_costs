@@ -61,7 +61,7 @@ view: sec_financials {
     timeframes: [raw, date, month, quarter, year]
     sql: TIMESTAMP( DATE_ADD(  PARSE_DATE('%Y%m%d', CAST(${TABLE}.period_end_date AS STRING)), INTERVAL (EXTRACT(YEAR FROM CURRENT_DATE()) - 2020) YEAR)) ;;
     label: "Financial Period End"
-    description: "The dynamically shifted end date for the reported financial quarter/year."
+    description: "The dynamically shifted end date for the reported financial month."
   }
 
   dimension_group: period_end_original {
